@@ -1,4 +1,8 @@
-import json
+try: 
+    from django.utils import simplejson as json
+except:
+    import json
+
 from datetime import datetime
 
 from google.appengine.ext import db

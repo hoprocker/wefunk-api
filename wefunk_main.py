@@ -3,11 +3,11 @@ app = Flask(__name__)
 
 from flask import request
 import business
-import test
+from actions import Test
 
 @app.route("/test/")
 def do_test():
-    show = test.test_datastore()
+    show = Test.test_datastore()
 
     ret = "saved show: %s<br/>\n" % (show,)
     for s in business.getAllShows():
