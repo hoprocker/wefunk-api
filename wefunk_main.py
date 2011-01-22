@@ -2,14 +2,16 @@ from flask import Flask
 app = Flask(__name__)
 
 from flask import request
-import business
+
+from business import ShowBusiness
+from util import TestHelper
 from actions import Test
+
+@app.route("/")
+def main():
+    return "hi"
 
 @app.route("/test/")
 def do_test():
-    show = Test.test_datastore()
-
-    ret = "saved show: %s<br/>\n" % (show,)
-    for s in business.getAllShows():
-        ret += "show: %s<br/>\n" % (s.date,)
+    ret = TestHelper.runTestsFromModule(Test)
     return ret
