@@ -3,6 +3,7 @@ from types import IntType
 from google.appengine.ext import db
 
 from models import Show,Track
+from util import cached
 
 
 def addShow(name, number, date, page_url, audio_url, mstotal, tracks, img_url="", desc="", credits="", *args, **kwargs):
@@ -43,9 +44,11 @@ def updateTrackLinks(track_key, prev, next):
     track.prev_track = prev
     track.put()
 
+@cached
 def getAllShows(keys_only=False, get_num=50):
     return Show.all(keys_only=keys_only).order("-number").fetch(get_num)
 
+@cached
 def getShowsBefore(begin_show, get_num=50):
     try:
         begin_show = int(begin_show)
@@ -53,27 +56,37 @@ def getShowsBefore(begin_show, get_num=50):
         begin_show = getLatestShowNum()
     return db.Query(Show).filter("number <= ", begin_show).fetch(get_num)
 
+@cached
 def getLatestShow():
     return db.Query(Show).order("-number").get()
 
+@cached
 def getLatestShowNum():
-    return db.Query(Show).order("-number").get().number
+    latest_show =  getLatestShow()
+    if latest_show != None:
+        return latest_show.number
+    return 0
 
+@cached
 def getShow(shownum):
     try: shownum=int(shownum)
     except: return []
     return db.Query(Show).filter('number = ', shownum).get()
 
+@cached
 def getTrack(key):
     return Track.get(key)
 
+@cached
 def getShowCount():
     return Show.all().count()
 
+@cached
 def getShowTrackCount(show_num):
     show = getShow(show_num)
     return len(show.playlist)
 
+@cached
 def getShowTracks(show):
     if type(show) == IntType:
         show = getShow(show)

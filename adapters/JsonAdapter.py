@@ -7,8 +7,9 @@ from google.appengine.api.datastore_types import Key as key_type
 from google.appengine.ext.db import ReferenceProperty as RefProp
 
 from business import ShowBusiness
+from util import cached
 
-HARD_LIMIT = 5
+HARD_LIMIT = 25
 
 def getShowsAsJson(tot=HARD_LIMIT, from_show=None):
     try: tot=int(tot)
@@ -19,6 +20,7 @@ def getShowsAsJson(tot=HARD_LIMIT, from_show=None):
     shows = ShowBusiness.getShowsBefore(from_show, min(tot, HARD_LIMIT))
     return map(showToObj, shows)
 
+@cached
 def showToObj(show):
     obj = {}
     for p in show.properties():
@@ -26,6 +28,7 @@ def showToObj(show):
     obj['playlist'] = map(lambda(x): trackToObj(ShowBusiness.getTrack(x)), obj['playlist'])
     return obj
 
+@cached
 def trackToObj(track):
     obj = {}
     for p in filter(lambda(x): type(getattr(track,x)) not in [key_type, RefProp], track.properties()):
