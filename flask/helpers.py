@@ -23,9 +23,11 @@ json = None
 try:
     import simplejson as json
 except ImportError:
-    try:
-        import json
-    except ImportError:
+        '''
+        try:
+            import json
+        except ImportError:
+        '''
         try:
             # Google Appengine offers simplejson via django
             from django.utils import simplejson as json

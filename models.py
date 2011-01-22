@@ -1,6 +1,7 @@
 from google.appengine.ext import db
 
 class Show(db.Model):
+    name = db.StringProperty()
     number = db.IntegerProperty()
     date = db.DateProperty()
     credits = db.StringProperty()
@@ -8,8 +9,8 @@ class Show(db.Model):
     audio_url = db.LinkProperty()
     img_url = db.LinkProperty()
     desc = db.TextProperty()
-    playlist = db.ListProperty(db.Key, verbose_name="playlist tracks")
     mstotal = db.IntegerProperty()
+    playlist = db.ListProperty(db.Key, verbose_name="playlist tracks")
 
 class Track(db.Model):
     show = db.ReferenceProperty(Show)
@@ -17,4 +18,6 @@ class Track(db.Model):
     artist = db.StringProperty()
     title = db.StringProperty()
     start_mspos = db.IntegerProperty()
+    next_track = db.Key()
+    prev_track = db.Key()
 

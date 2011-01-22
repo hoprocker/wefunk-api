@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import logging
+
 from BeautifulSoup import BeautifulSoup
 from urllib2 import urlopen
 import urllib
@@ -8,6 +10,8 @@ try:
     from django.utils import simplejson as json
 except:
     import json
+
+
 from types import FileType
 from datetime import datetime,date
 from business import ShowBusiness
@@ -65,6 +69,12 @@ def refreshShowIndex(until=0):
     start by grabbing the show index page, then dig into the first show
     and navigate backwards through them (follow "shownav-r" links) until
     either there are no more or show number "until" has been reached
+
+    BIG TODO: need to parameterize the show-page retrieval. Appengine
+    restricts 'get' requests to 30 seconds, and I imagine this applies
+    to cron'd gets, too:
+
+    http://code.google.com/appengine/docs/python/runtime.html#The_Request_Timer
     """
     shows_meta = parseShowIndexPage(fetchPage(INDEX_URL))
 
@@ -75,14 +85,18 @@ def refreshShowIndex(until=0):
     if int(shows_meta["newest"]["number"]) < until:
         return 0
 
+    tot = 0
     show_url = urllib.basejoin(SHOW_URL, shows_meta["shows"][0]["href"])
     show = parseShowPage(fetchPage(show_url))
+    if ShowBusiness.getShow(show["number"]) != None:
+        return tot
 
-    tot = 0
     while int(show["number"]) > until:
-        ##ShowBusiness.addShow(show)
+        ShowBusiness.addShow(**show)
         show_url = urllib.basejoin(SHOW_URL, show["prevshow_url"])
         show = parseShowPage(fetchPage(show_url))
+        if ShowBusiness.getShow(show["number"]) != None:
+            break
         tot += 1
 
     ## we didn't touch shows so it's still valid as basis for comparison
@@ -126,7 +140,7 @@ def parseShowPage(html):
     d = datetime.strptime(tracks_meta["tracks"]["showdate"], "%Y-%m-%d")
     ret["date"] = date(d.year, d.month, d.day)
     ret["audio_url"] = MP3_PATH % (ret["number"], ret["date"].strftime("%Y-%m-%d"))
-    ret["img_url"] = 0  ## TODO, imoprt me
+    ret["img_url"] = ""  ## TODO, imoprt me
     ret["page_url"] = page.find("meta", attrs={"property": "og:url"})["content"]
     ret["name"] = content.find("div", id=re.compile("\\bplaylistbox\\b")).find("span", attrs={"class":re.compile("\\bplitem\\b")}).string
 
@@ -159,9 +173,9 @@ def parseShowPage(html):
 
 def extractTrackJson(html):
     return {
-            "trackextra": json.read(re.search("var trackextra = (.*);", html).groups()[0]),
-            "tracks": json.read(re.search("var tracks = (.*);", html).groups()[0]),
-            "favorited": json.read(re.search("var trackisfav = (.*);", html).groups()[0]),
+            "trackextra": json.loads(re.search("var trackextra = (.*);", html).groups()[0].decode('latin-1')),
+            "tracks": json.loads(re.search("var tracks = (.*);", html).groups()[0].decode('latin-1')),
+            "favorited": json.loads(re.search("var trackisfav = (.*);", html).groups()[0].decode('latin-1')),
         }
 
 def fetchPage(url):
