@@ -1,6 +1,8 @@
 from types import IntType
 
 from google.appengine.ext import db
+from google.appengine.api.datastore_types import Key as key_type
+from google.appengine.ext.db import ReferenceProperty as RefProp
 
 from models import Show,Track
 from util import cached
@@ -92,7 +94,7 @@ def getShowTrackCount(show_num):
 def getShowTracks(show):
     if type(show) == IntType:
         show = getShow(show)
-    return show.playlist
+    return [trackToObj(getTrack(t)) for t in show.playlist]
 
 def deleteShow(show):
     if type(show) == IntType:
@@ -101,5 +103,20 @@ def deleteShow(show):
         show.delete()
         return "deleted"
     return "no object returned"
+
+@cached
+def showToObj(show):
+    obj = {}
+    for p in show.properties():
+        obj[p] = getattr(show, p)
+    obj['playlist'] = map(lambda(x): trackToObj(getTrack(x)), obj['playlist'])
+    return obj
+
+@cached
+def trackToObj(track):
+    obj = {}
+    for p in filter(lambda(x): type(getattr(track,x)) not in [key_type, RefProp], track.properties()):
+        obj[p] = getattr(track, p)
+    return obj
 
 
