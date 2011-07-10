@@ -14,6 +14,8 @@ def addShow(name, number, date, page_url, audio_url, mstotal, tracks, img_url=""
     show.number = number
     show.date = date
     show.mstotal = mstotal
+    show.audio_url = audio_url
+    show.img_url = img_url
     show.put()
     
     t_list = []
