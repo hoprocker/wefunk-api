@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import logging
+logging.getLogger().setLevel(logging.DEBUG)
 
 from BeautifulSoup import BeautifulSoup
 from urllib2 import urlopen
@@ -76,32 +77,49 @@ def refreshShowIndex(until=0):
 
     http://code.google.com/appengine/docs/python/runtime.html#The_Request_Timer
     """
-    shows_meta = parseShowIndexPage(fetchPage(INDEX_URL))
+    shows_meta = getShowsList()
 
     if len(shows_meta["shows"]) < 1:
-        print "ERROR: no shows parsed"
+        logging.error("no shows found")
         return -1
     
     if int(shows_meta["newest"]["number"]) < until:
         return 0
 
     tot = 0
-    show_url = urllib.basejoin(SHOW_URL, shows_meta["shows"][0]["href"])
-    show = parseShowPage(fetchPage(show_url))
-    if ShowBusiness.getShow(show["number"]) != None:
-        return tot
 
-    while int(show["number"]) > until:
-        ShowBusiness.addShow(**show)
-        show_url = urllib.basejoin(SHOW_URL, show["prevshow_url"])
-        show = parseShowPage(fetchPage(show_url))
+    show = shows_meta["shows"].pop(0)
+    parsed_shows = []
+    while int(show["number"]) > until and len(shows_meta["shows"]) > 0:
         if ShowBusiness.getShow(show["number"]) != None:
-            break
+            show = shows_meta["shows"].pop(0)
+            continue  ## already in datastore
+        show_url = urllib.basejoin(SHOW_URL, show['href'])
+        show_info = parseShowPage(fetchPage(show_url))
+        parsed_shows.append(show_info)
+        ShowBusiness.addShow(**show_info)
+        show = shows_meta["shows"].pop(0)
         tot += 1
 
     ## we didn't touch shows so it's still valid as basis for comparison
     return tot
 
+def getShowsList():
+    main_idx = fetchPage(INDEX_URL)
+    idx_tree = BeautifulSoup(main_idx)
+
+    showidx_links = filter(lambda x: x.get("href") != "/shows/", idx_tree.findChild(name="div", attrs={"id":re.compile("\\bbottombrowse\\b")}).findChildren(name="a", attrs={"class":re.compile("\\bnu\\b")}))
+
+    showidx_links = map(lambda x: SHOW_URL + x.get('href').encode('utf-8'), showidx_links)
+    shows_list = []
+    for url in showidx_links:
+        shows_list.extend(parseShowIndexPage(fetchPage(url)))
+
+    shows_list.sort(key=lambda x: long(x["number"]), reverse=True)
+    ret = {"shows":shows_list}
+    ret["newest"] = max(ret["shows"], key=lambda(x): int(x["number"]))
+    ret["oldest"] = min(ret["shows"], key=lambda(x): int(x["number"]))
+    return ret
 
 def parseShowIndexPage(html):
     """
@@ -111,17 +129,11 @@ def parseShowIndexPage(html):
         html = html.read()
     tree = BeautifulSoup(html)
 ## TODO : add img urls
-    ret = {
-            "shows":list(map(lambda(x): {
+    return map(lambda(x): {
                             "name":_extractNameFromIndexNode(x),
                             "href":_extractHrefFromIndexNode(x),
                             "number":_extractShowNumFromIndexNode(x),
-                            }, tree.findAll(name="div", attrs={"class":re.compile("\\bshowitem\\b")})))
-            }
-    ret["newest"] = max(ret["shows"], key=lambda(x): int(x["number"]))
-    ret["oldest"] = min(ret["shows"], key=lambda(x): int(x["number"]))
-
-    return ret
+                            }, tree.findAll(name="div", attrs={"class":re.compile("\\bshowitem\\b")}))
 
 def parseShowPage(html):
     """
@@ -160,7 +172,7 @@ def parseShowPage(html):
                 "start_mspos": tracks_meta["tracks"]["tracks"][i]["mspos"]
             }
         try:
-            tr["artist"] = tracks_meta["tracksextra"][i][0]["a"]
+            tr["artist"] = tracks_meta["trackextra"][i][0]["a"]
         except:
             tr["artist"] = ""
         try:
@@ -169,6 +181,7 @@ def parseShowPage(html):
             tr["title"] = ""
 
         ret["tracks"].append(tr)
+    logging.debug(ret)
     return ret
 
 def extractTrackJson(html):
@@ -179,7 +192,7 @@ def extractTrackJson(html):
         }
 
 def fetchPage(url):
-    print "fetching url %s" % (url,)
+    logging.debug("fetching url %s" % (url,))
     return urlopen(url).read()
 
 def _extractShowNumFromIndexNode(node):
