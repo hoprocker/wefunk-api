@@ -44,6 +44,10 @@ def update_shows():
 def del_show(shownum):
     return ShowBusiness.deleteShow(shownum)
 
+@app.route('/admin/clear/')
+def clear_all_shows():
+    return "%s shows cleared" % (str(ShowBusiness.clearAllShows()),)
+
 @app.route("/")
 def dull():
     return ""

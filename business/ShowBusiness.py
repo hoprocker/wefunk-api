@@ -104,6 +104,11 @@ def deleteShow(show):
         return "deleted"
     return "no object returned"
 
+def clearAllShows():
+    prev_cnt = getShowCount()
+    [deleteShow(s) for s in getAllShows(get_num=getShowCount())]
+    return prev_cnt - getShowCount()
+
 @cached
 def showToObj(show):
     obj = {}
