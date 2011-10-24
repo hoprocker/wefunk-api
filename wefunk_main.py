@@ -13,6 +13,19 @@ def do_test():
     ret = TestHelper.runTestsFromModule(Test)
     return ret
 
+## TESTING {{{
+@app.route('/showindex/')
+def getIndex():
+    return str(ShowScrape.getShowsList())
+    return "done"
+
+@app.route('/shows/<int:show>/tracks/')
+def get_tracks_for_show(show):
+    return ",".join(ShowBusiness.getShowTracks(show))
+
+
+## TESTING }}}
+
 @app.route('/shows/<int:tot>/<int:from_show>/')
 @app.route('/shows/<int:tot>/')
 @app.route('/shows/')

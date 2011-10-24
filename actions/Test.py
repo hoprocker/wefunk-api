@@ -42,11 +42,11 @@ def test_scrapeAndStore():
 def test_refreshShowIndex():
     show_cnt = ShowBusiness.getShowCount()
 
-    newnum = ShowScrape.refreshShowIndex(550)
+    newnum = ShowScrape.refreshShowIndex(650)
     assert ShowBusiness.getShowCount() == newnum+show_cnt
 
     ## do it twice and make sure it doesn't repeat
-    ShowScrape.refreshShowIndex(550)
+    ShowScrape.refreshShowIndex(600)
     assert ShowBusiness.getShowCount() == newnum+show_cnt
 
 def test_scrapeAndStoreUnicode():
