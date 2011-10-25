@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from google.appengine.api import taskqueue
 import logging
 logging.getLogger().setLevel(logging.DEBUG)
 
@@ -71,11 +72,7 @@ def refreshShowIndex(until=0):
     and navigate backwards through them (follow "shownav-r" links) until
     either there are no more or show number "until" has been reached
 
-    BIG TODO: need to parameterize the show-page retrieval. Appengine
-    restricts 'get' requests to 30 seconds, and I imagine this applies
-    to cron'd gets, too:
-
-    http://code.google.com/appengine/docs/python/runtime.html#The_Request_Timer
+    add these shows to the task queue, let the appengine add them at its own leisure
     """
     shows_meta = getShowsList()
 
@@ -89,20 +86,27 @@ def refreshShowIndex(until=0):
     tot = 0
 
     show = shows_meta["shows"].pop(0)
-    parsed_shows = []
     while int(show["number"]) > until and len(shows_meta["shows"]) > 0:
-        if ShowBusiness.getShow(show["number"]) != None:
-            show = shows_meta["shows"].pop(0)
-            continue  ## already in datastore
-        show_url = urllib.basejoin(SHOW_URL, show['href'])
-        show_info = parseShowPage(fetchPage(show_url))
-        parsed_shows.append(show_info)
-        ShowBusiness.addShow(**show_info)
+        if pullShowInfo(show):
+            tot += 1
         show = shows_meta["shows"].pop(0)
-        tot += 1
 
     ## we didn't touch shows so it's still valid as basis for comparison
     return tot
+
+def pullShowInfo(show):
+    if ShowBusiness.getShow(show["number"]) != None:
+        return False  ## already in datastore
+    show_url = urllib.basejoin(SHOW_URL, show['href'])
+
+    logging.debug("adding show to queue: %s" % (show_url,))
+    taskqueue.add(url='/admin/update/%s/' % (urllib.quote_plus(show_url),))
+    return True
+
+def addShowFromPage(show_url):
+    show_url = urllib.unquote_plus(show_url)
+    show_info = parseShowPage(fetchPage(show_url))
+    ShowBusiness.addShow(**show_info)
 
 def getShowsList():
     main_idx = fetchPage(INDEX_URL)

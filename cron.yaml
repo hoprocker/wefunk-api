@@ -1,4 +1,4 @@
 cron:
 - description: update show db
-  schedule: every 24 hours
-  url: /update/
+  schedule: every week
+  url: /admin/update/

@@ -35,10 +35,15 @@ def get_shows_as_json(tot=None, from_show=None):
     resp.mimetype = "application/json"
     return resp
 
+@app.route('/admin/update/<path:show_url>/', methods=['POST',])
+def update_one_show(show_url):
+    ShowScrape.addShowFromPage(show_url)
+    return ''
+
 @app.route('/admin/update/')
 def update_shows():
-    tot = ShowScrape.refreshShowIndex(600)
-    return "%s shows updated" % (tot,)
+    tot = ShowScrape.refreshShowIndex()
+    return "%s shows scheduled for update" % (tot,)
 
 @app.route('/admin/delete/<int:shownum>/')
 def del_show(shownum):
