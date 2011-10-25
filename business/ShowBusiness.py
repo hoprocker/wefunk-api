@@ -8,27 +8,34 @@ from models import Show,Track
 from util import cached
 
 
-def addShow(name, number, date, page_url, audio_url, mstotal, tracks, img_url="", desc="", credits="", *args, **kwargs):
-    show = Show()
-    show.name = name
-    show.credits = credits
-    show.desc = desc
-    show.number = number
-    show.date = date
-    show.mstotal = mstotal
-    show.audio_url = audio_url
-    show.img_url = img_url
-    show.put()
+def addShow(*args, **kwargs):
+    def txn(name, number, date, page_url, audio_url, mstotal, tracks, img_url="", desc="", credits="", *args, **kwargs):
+        show = Show()
+        show.name = name
+        show.credits = credits
+        show.desc = desc
+        show.number = number
+        show.date = date
+        show.mstotal = mstotal
+        show.audio_url = audio_url
+        show.img_url = img_url
+        show.put()
+        
+        return show
     
+    show = db.run_in_transaction(txn, *args, **kwargs)
+
     t_list = []
-    for t in tracks:
-        t_list.append(addTrack(show.key(), t,).key())
-    for i in range(0, len(t_list)-1):
-        prev = (None, t_list[i-1])[i > 0]
-        next = (None, t_list[i+1])[i < (len(t_list)-1)]
-        updateTrackLinks(t_list[i], prev, next)
-    show.playlist = t_list
-    show.put()
+## FOR NOW, TODO : assuming 'tracks' is in kwargs, a **BAD** idea long-term
+    if kwargs.has_key('tracks'):
+        for t in kwargs['tracks']:
+            t_list.append(addTrack(show.key(), t,).key())
+        for i in range(0, len(t_list)-1):
+            prev = (None, t_list[i-1])[i > 0]
+            next = (None, t_list[i+1])[i < (len(t_list)-1)]
+            updateTrackLinks(t_list[i], prev, next)
+        show.playlist = t_list
+        show.put()
 
     return show
 
